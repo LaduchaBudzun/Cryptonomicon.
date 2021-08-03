@@ -207,7 +207,17 @@ export default {
       if (currentTicker.name == "") {
         return;
       } else {
-        this.tickers.push(currentTicker);
+        //смотрим есть ли уже такой криптоминкоен
+        let result = this.tickers.find(
+          (ticker) => ticker.name === currentTicker.name
+        );
+
+        //если такой криптоминкоен уже существует тогда не добавляем его
+        if (result) {
+          return;
+        } else {
+          this.tickers.push(currentTicker);
+        }
       }
 
       setInterval(async () => {
@@ -216,7 +226,7 @@ export default {
         );
 
         const data = await f.json();
-        console.log(data);
+
         // newTicker.price = data.USD;
         this.tickers.find((t) => t.name === currentTicker.name).price =
           data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
@@ -224,7 +234,7 @@ export default {
         if (this.sel.name === currentTicker.name) {
           this.graph.push(data.USD);
         }
-      }, 3000);
+      }, 5000);
 
       this.ticker = "";
     },
