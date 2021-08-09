@@ -71,7 +71,6 @@
           </svg>
           Добавить
         </button>
-        {{ sel }}
       </section>
 
       <template v-if="tickers.length">
@@ -198,12 +197,42 @@ export default {
     };
   },
 
+  created() {
+    const tickersData = localStorage.getItem("cryptonimicon-list");
+    console.log(tickersData);
+    if (tickersData) {
+      this.tickers = JSON.parse(tickersData);
+
+      this.tickers.forEach((ticker) => {
+        this.subscribeToUpdates(ticker.name); // каждый тикер взятый из locStorage
+      });
+    }
+  },
+
   methods: {
+    subscribeToUpdates(TickerName) {
+      setInterval(async () => {
+        const f = await fetch(
+          `https://min-api.cryptocompare.com/data/price?fsym=${TickerName}&tsyms=USD,JPY,EUR`
+        );
+
+        const data = await f.json();
+
+        this.tickers.find((t) => t.name === TickerName).price =
+          data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2); // запись цены в ticker.price
+
+        if (this.sel.name === TickerName) {
+          this.graph.push(data.USD);
+        }
+      }, 5000);
+    },
+
     add() {
       const currentTicker = {
         name: this.ticker,
         price: "-",
       };
+
       if (currentTicker.name == "") {
         return;
       } else {
@@ -217,37 +246,31 @@ export default {
           return;
         } else {
           this.tickers.push(currentTicker);
+
+          localStorage.setItem(
+            "cryptonimicon-list",
+            JSON.stringify(this.tickers)
+          );
         }
       }
-
-      setInterval(async () => {
-        const f = await fetch(
-          `https://min-api.cryptocompare.com/data/price?fsym=${currentTicker.name}&tsyms=USD,JPY,EUR`
-        );
-
-        const data = await f.json();
-
-        // newTicker.price = data.USD;
-        this.tickers.find((t) => t.name === currentTicker.name).price =
-          data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
-
-        if (this.sel.name === currentTicker.name) {
-          this.graph.push(data.USD);
-        }
-      }, 5000);
-
+      this.subscribeToUpdates(currentTicker.name);
       this.ticker = "";
     },
 
     select(ticker) {
+      //при нажатии на ячейку
       this.sel = ticker;
-      this.graph = [];
+      this.graph = []; //обнуление графика
     },
 
     handleDelete(tickerToRemove) {
+      //удаление
       this.tickers = this.tickers.filter((tick) => tick !== tickerToRemove); //если элемент массива удовлетворяет условию тогда он остается в массиве
+
+      localStorage.setItem("cryptonimicon-list", JSON.stringify(this.tickers));
     },
     normalizeGraph() {
+      //график
       const maxValue = Math.max(...this.graph);
       const minValue = Math.min(...this.graph);
       return this.graph.map(
